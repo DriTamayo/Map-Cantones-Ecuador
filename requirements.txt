@@ -1,0 +1,9 @@
+streamlit>=1.25.0
+geopandas
+folium
+streamlit-folium
+branca
+pandas
+shapely
+fiona
+pyproj
