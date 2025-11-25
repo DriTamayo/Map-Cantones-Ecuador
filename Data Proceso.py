@@ -2,6 +2,7 @@ import pandas as pd
 import geopandas as gpd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+import json
 
 # --- Ajusta rutas ---
 excel_path = "data_consolidada.xlsx"
@@ -15,7 +16,7 @@ df = pd.read_excel(excel_path)
 sp = gpd.read_file(shp_path)
 
 # ----------------------------------------------------------
-# 2. CÁLCULO DE INDICADORES (equivalente al código en R)
+# 2. CÁLCULO DE INDICADORES
 # ----------------------------------------------------------
 df["madre_10_14_2022"] = df["madre_10_19_2022"] - df["madre_15_19_2022"]
 df["mujeres_10_14"] = df["mujeres_10_19"] - df["mujeres_15_19"]
@@ -68,14 +69,42 @@ X_scaled = StandardScaler().fit_transform(X)
 pca = PCA(n_components=1)
 df_sum["INDICE_VULNERABILIDAD"] = pca.fit_transform(X_scaled)
 
+loadings = pd.Series(pca.components_[0], index=vars_pca)
+loadings
+contrib = loadings**2
+contrib
+
 # ----------------------------------------------------------
 # 4. UNIÓN CON EL SHAPEFILE
 # ----------------------------------------------------------
+df_sum["canton"] = df_sum["canton"].astype(int).astype(str).str.zfill(4)
 sp_final = sp.merge(df_sum, left_on="DPA_CANTON", right_on="canton", how="left")
 
 # ----------------------------------------------------------
 # 5. EXPORTAR
 # ----------------------------------------------------------
 sp_final.to_file(output_geojson, driver="GeoJSON")
+
+# 1. Cargar
+gdf = gpd.read_file("data_preparada.geojson")
+
+# 2. Simplificar geometrías (preserva topología)
+# 0.001 grados ≈ 100 m (ajustable)
+gdf["geometry"] = gdf["geometry"].simplify(
+    tolerance=0.001, preserve_topology=True
+)
+
+# 3. Reducir precisión de coordenadas
+def reduce_precision(geom, decimals=5):
+    return json.loads(json.dumps(geom.__geo_interface__), parse_float=lambda x: round(float(x), decimals))
+
+gdf["geometry"] = gdf["geometry"].apply(lambda g: g if g is None else g.simplify(0.0))
+
+# Guardar como GeoJSON reducido
+output_file = "data_preparada_ligera.geojson"
+gdf.to_file(output_file, driver="GeoJSON")
+
+print("Archivo optimizado guardado como:", output_file)
+
 
 print("✔ Archivo preparado: data_preparada.geojson")

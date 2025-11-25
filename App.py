@@ -13,7 +13,7 @@ st.title("🗺️ Mapa Interactivo – Cantones de Ecuador")
 # --------------------------------------------
 # CARGA DE ARCHIVO GEOJSON PREPARADO
 # --------------------------------------------
-sp = gpd.read_file("data_preparada.geojson")
+sp = gpd.read_file("data_preparada_ligera.geojson")
 
 # Variables para visualizar (todas las numéricas)
 variables = [
@@ -47,7 +47,7 @@ folium.Choropleth(
 
 # Tooltip
 tooltip = GeoJsonTooltip(
-    fields=["DPA_CANTON", var],
+    fields=['DPA_DESCAN', var],
     aliases=["Cantón:", f"{var}:"]
 )
 
